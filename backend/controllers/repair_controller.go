@@ -85,7 +85,7 @@ func CreateRepair(c *gin.Context) {
 
 	if req.NotificationID > 0 {
 		var notification models.Notification
-		if err := models.DB.Where("id = ?", notification.ID).First(&notification).Error; err != nil {
+		if err := models.DB.Where("id = ?", req.NotificationID).First(&notification).Error; err != nil {
 			response.NotFound(c, "通知不存在")
 			return
 		}
@@ -278,6 +278,9 @@ func UpdateRepair(c *gin.Context) {
 		return
 	}
 
+	qualityCheckerID, _ := c.Get("user_id")
+	qualityCheckerName, _ := c.Get("real_name")
+
 	var repair models.RepairRecord
 	if err := models.DB.Where("id = ?", id).First(&repair).Error; err != nil {
 		response.NotFound(c, "维修记录不存在")
@@ -353,9 +356,6 @@ func CompleteRepair(c *gin.Context) {
 		response.BadRequest(c, "请求参数错误: "+err.Error())
 		return
 	}
-
-	qualityCheckerID, _ := c.Get("user_id")
-	qualityCheckerName, _ := c.Get("real_name")
 
 	var repair models.RepairRecord
 	if err := models.DB.Where("id = ?", id).First(&repair).Error; err != nil {
@@ -469,30 +469,33 @@ func GetRepairStatistics(c *gin.Context) {
 
 	currentDealerID, _ := c.Get("dealer_id")
 
-	query := models.DB.Model(&models.RepairRecord{})
-	if recallID != "" {
-		query = query.Where("recall_id = ?", recallID)
-	}
-	if dealerID != "" {
-		query = query.Where("dealer_id = ?", dealerID)
-	} else if did, ok := currentDealerID.(uint64); ok && did > 0 {
-		query = query.Where("dealer_id = ?", did)
+	newQuery := func() *gorm.DB {
+		q := models.DB.Session(&gorm.Session{}).Model(&models.RepairRecord{})
+		if recallID != "" {
+			q = q.Where("recall_id = ?", recallID)
+		}
+		if dealerID != "" {
+			q = q.Where("dealer_id = ?", dealerID)
+		} else if did, ok := currentDealerID.(uint64); ok && did > 0 {
+			q = q.Where("dealer_id = ?", did)
+		}
+		return q
 	}
 
 	var total int64
-	query.Count(&total)
+	newQuery().Count(&total)
 
 	var pending int64
-	query.Where("repair_status = 0").Count(&pending)
+	newQuery().Where("repair_status = 0").Count(&pending)
 
 	var inProgress int64
-	query.Where("repair_status = 1").Count(&inProgress)
+	newQuery().Where("repair_status = 1").Count(&inProgress)
 
 	var completed int64
-	query.Where("repair_status = 2").Count(&completed)
+	newQuery().Where("repair_status = 2").Count(&completed)
 
 	var failed int64
-	query.Where("repair_status = 3").Count(&failed)
+	newQuery().Where("repair_status = 3").Count(&failed)
 
 	type DealerStat struct {
 		DealerName string `json:"dealer_name"`
@@ -500,13 +503,12 @@ func GetRepairStatistics(c *gin.Context) {
 		Completed  int64  `json:"completed"`
 	}
 	var dealerStats []DealerStat
-	query.Select("dealer_name, COUNT(*) as count, SUM(CASE WHEN repair_status = 2 THEN 1 ELSE 0 END) as completed").
+	newQuery().Select("dealer_name, COUNT(*) as count, SUM(CASE WHEN repair_status = 2 THEN 1 ELSE 0 END) as completed").
 		Group("dealer_name").
 		Scan(&dealerStats)
 
 	var totalCost float64
-	models.DB.Table("repair_records").Select("IFNULL(SUM(total_cost), 0)").
-		Where(query.Where).Scan(&totalCost)
+	newQuery().Select("IFNULL(SUM(total_cost), 0)").Scan(&totalCost)
 
 	response.Success(c, gin.H{
 		"total":         total,
@@ -515,7 +517,7 @@ func GetRepairStatistics(c *gin.Context) {
 		"completed":     completed,
 		"failed":        failed,
 		"total_cost":    totalCost,
-		"complete_rate": float64(completed) / float64(total) * 100,
+		"complete_rate": response.SafePercent(float64(completed), float64(total)),
 		"by_dealer":     dealerStats,
 	})
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type ComplaintCreateRequest struct {
@@ -231,16 +232,18 @@ func GetDefectStatistics(c *gin.Context) {
 	startDate := c.Query("start_date")
 	endDate := c.Query("end_date")
 
-	query := models.DB.Model(&models.Complaint{})
-
-	if modelID != "" {
-		query = query.Where("model_id = ?", modelID)
-	}
-	if startDate != "" {
-		query = query.Where("created_at >= ?", startDate)
-	}
-	if endDate != "" {
-		query = query.Where("created_at <= ?", endDate)
+	newQuery := func() *gorm.DB {
+		q := models.DB.Session(&gorm.Session{}).Model(&models.Complaint{})
+		if modelID != "" {
+			q = q.Where("model_id = ?", modelID)
+		}
+		if startDate != "" {
+			q = q.Where("created_at >= ?", startDate)
+		}
+		if endDate != "" {
+			q = q.Where("created_at <= ?", endDate)
+		}
+		return q
 	}
 
 	type StatResult struct {
@@ -250,20 +253,21 @@ func GetDefectStatistics(c *gin.Context) {
 	}
 
 	var stats []StatResult
-	query.Select("complaint_type, COUNT(*) as count, SUM(is_defect) as defect_count").
+	newQuery().Select("complaint_type, COUNT(*) as count, SUM(is_defect) as defect_count").
 		Group("complaint_type").
 		Scan(&stats)
 
 	var total int64
+	newQuery().Count(&total)
+
 	var defectTotal int64
-	query.Count(&total)
-	query.Where("is_defect = 1").Count(&defectTotal)
+	newQuery().Where("is_defect = 1").Count(&defectTotal)
 
 	result := map[string]interface{}{
-		"total":         total,
-		"defect_total":  defectTotal,
-		"by_type":       stats,
-		"defect_rate":   fmt.Sprintf("%.2f%%", float64(defectTotal)/float64(total)*100),
+		"total":        total,
+		"defect_total": defectTotal,
+		"by_type":      stats,
+		"defect_rate":  fmt.Sprintf("%.2f%%", response.SafePercent(float64(defectTotal), float64(total))),
 	}
 
 	response.Success(c, result)

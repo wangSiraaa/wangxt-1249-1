@@ -6,7 +6,7 @@ import {
   ProFormSelect,
   ProFormDigit,
   ProFormDatePicker,
-  ProFormListItem,
+  ProFormItem,
 } from '@ant-design/pro-components';
 import { Card, Button, Space, message, Row, Col, Alert, Tag } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
@@ -141,7 +141,7 @@ const RecallForm: React.FC = () => {
       >
         <Alert
           message="操作说明"
-          description="选择召回涉及的车型后，系统会自动统计该车型已确认的投诉样本数。提交后状态变为"待确认"，法规专员可以进行确认。"
+          description={`选择召回涉及的车型后，系统会自动统计该车型已确认的投诉样本数。提交后状态变为"待确认"，法规专员可以进行确认。`}
           type="info"
           showIcon
           style={{ marginBottom: 24 }}

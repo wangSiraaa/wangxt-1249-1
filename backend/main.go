@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"recall-tracking/config"
 	"recall-tracking/models"
 	"recall-tracking/routes"
@@ -12,6 +13,10 @@ import (
 func main() {
 	if err := config.LoadConfig(); err != nil {
 		log.Printf("Warning: Failed to load config: %v", err)
+	}
+
+	if err := os.MkdirAll(config.AppConfig.Upload.Path, 0755); err != nil {
+		log.Printf("Warning: Failed to create upload directory: %v", err)
 	}
 
 	if err := models.InitDB(); err != nil {

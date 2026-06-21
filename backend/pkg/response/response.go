@@ -66,3 +66,10 @@ func NotFound(c *gin.Context, message string) {
 func InternalServerError(c *gin.Context, message string) {
 	Error(c, 500, message)
 }
+
+func SafePercent(numerator, denominator float64) float64 {
+	if denominator == 0 {
+		return 0
+	}
+	return numerator / denominator * 100
+}

@@ -225,8 +225,8 @@ func GetDashboardStats(c *gin.Context) {
 		"total_repair_cost":        totalRepairCost,
 		"recent_recalls":           recentRecalls,
 		"recent_repairs":           recentRepairs,
-		"defect_rate":              float64(defectCount) / float64(complaintCount) * 100,
-		"notification_send_rate":   float64(sentNotificationCount) / float64(notificationCount) * 100,
-		"repair_complete_rate":     float64(completedRepairCount) / float64(repairCount) * 100,
+		"defect_rate":              response.SafePercent(float64(defectCount), float64(complaintCount)),
+		"notification_send_rate":   response.SafePercent(float64(sentNotificationCount), float64(notificationCount)),
+		"repair_complete_rate":     response.SafePercent(float64(completedRepairCount), float64(repairCount)),
 	})
 }

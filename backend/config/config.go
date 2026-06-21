@@ -83,3 +83,9 @@ func GetDSN() string {
 		"@tcp(" + AppConfig.DB.Host + ":" + AppConfig.DB.Port + ")/" +
 		AppConfig.DB.Name + "?charset=utf8mb4&parseTime=True&loc=Local"
 }
+
+func GetDSNWithoutDB() string {
+	return AppConfig.DB.User + ":" + AppConfig.DB.Password +
+		"@tcp(" + AppConfig.DB.Host + ":" + AppConfig.DB.Port + ")/" +
+		"?charset=utf8mb4&parseTime=True&loc=Local"
+}

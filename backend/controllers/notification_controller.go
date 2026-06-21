@@ -293,25 +293,28 @@ func ConfirmNotification(c *gin.Context) {
 func GetNotificationStatistics(c *gin.Context) {
 	recallID := c.Query("recall_id")
 
-	query := models.DB.Model(&models.Notification{})
-	if recallID != "" {
-		query = query.Where("recall_id = ?", recallID)
+	newQuery := func() *gorm.DB {
+		q := models.DB.Session(&gorm.Session{}).Model(&models.Notification{})
+		if recallID != "" {
+			q = q.Where("recall_id = ?", recallID)
+		}
+		return q
 	}
 
 	var total int64
-	query.Count(&total)
+	newQuery().Count(&total)
 
 	var pending int64
-	query.Where("status = 0").Count(&pending)
+	newQuery().Where("status = 0").Count(&pending)
 
 	var sent int64
-	query.Where("status = 1").Count(&sent)
+	newQuery().Where("status = 1").Count(&sent)
 
 	var confirmed int64
-	query.Where("owner_confirm_status = 1").Count(&confirmed)
+	newQuery().Where("owner_confirm_status = 1").Count(&confirmed)
 
 	var rejected int64
-	query.Where("owner_confirm_status = 2").Count(&rejected)
+	newQuery().Where("owner_confirm_status = 2").Count(&rejected)
 
 	response.Success(c, gin.H{
 		"total":       total,
@@ -319,7 +322,7 @@ func GetNotificationStatistics(c *gin.Context) {
 		"sent":        sent,
 		"confirmed":   confirmed,
 		"rejected":    rejected,
-		"send_rate":   float64(sent) / float64(total) * 100,
-		"confirm_rate": float64(confirmed) / float64(sent) * 100,
+		"send_rate":    response.SafePercent(float64(sent), float64(total)),
+		"confirm_rate": response.SafePercent(float64(confirmed), float64(sent)),
 	})
 }
