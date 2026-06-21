@@ -167,6 +167,11 @@ CREATE TABLE IF NOT EXISTS repair_records (
     repair_start_time DATETIME COMMENT '维修开始时间',
     repair_end_time DATETIME COMMENT '维修结束时间',
     repair_status TINYINT DEFAULT 0 COMMENT '维修状态：0-待维修，1-维修中，2-已完成，3-维修失败',
+    appointment_status TINYINT DEFAULT 0 COMMENT '预约推进状态：0-待联系，1-已联系，2-已预约，3-到店未修',
+    contact_time DATETIME COMMENT '联系时间',
+    appointment_time DATETIME COMMENT '预约时间',
+    arrival_time DATETIME COMMENT '到店时间',
+    contact_remark VARCHAR(500) COMMENT '联系备注',
     handler_id BIGINT NOT NULL COMMENT '处理人ID',
     handler_name VARCHAR(100) NOT NULL COMMENT '处理人姓名',
     parts_used TEXT COMMENT '使用配件',
@@ -190,6 +195,7 @@ CREATE TABLE IF NOT EXISTS repair_records (
     INDEX idx_recall_id (recall_id),
     INDEX idx_vin (vin),
     INDEX idx_repair_status (repair_status),
+    INDEX idx_appointment_status (appointment_status),
     INDEX idx_handler_id (handler_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='维修记录表';
 

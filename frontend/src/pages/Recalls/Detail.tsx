@@ -27,8 +27,9 @@ import {
 import { history, useParams, useModel } from '@umijs/max';
 import { ProTable, ActionType, ProColumns } from '@ant-design/pro-components';
 import { recallApi, notificationApi, statusConfig, RoleType } from '@/services/api';
-import { StatusTag } from '@/components/StatusTag';
+import { StatusTag, AppointmentProgress } from '@/components/StatusTag';
 import dayjs from 'dayjs';
+import ReactECharts from 'echarts-for-react';
 
 const { confirm } = Modal;
 
@@ -183,6 +184,50 @@ const RecallDetail: React.FC = () => {
     100,
   );
 
+  const appointmentChartOption = data.appointment_stats
+    ? {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0 },
+        series: [
+          {
+            type: 'pie',
+            radius: ['40%', '65%'],
+            center: ['50%', '45%'],
+            label: { show: true, formatter: '{b}: {c} ({d}%)' },
+            data: data.appointment_stats.map((d: any) => ({
+              value: d.count,
+              name:
+                statusConfig.appointment[
+                  d.appointment_status as keyof typeof statusConfig.appointment
+                ]?.text || d.appointment_status,
+            })),
+          },
+        ],
+      }
+    : null;
+
+  const repairStatusChartOption = data.repair_status_stats
+    ? {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0 },
+        series: [
+          {
+            type: 'pie',
+            radius: ['40%', '65%'],
+            center: ['50%', '45%'],
+            label: { show: true, formatter: '{b}: {c} ({d}%)' },
+            data: data.repair_status_stats.map((d: any) => ({
+              value: d.count,
+              name:
+                statusConfig.repair[
+                  d.repair_status as keyof typeof statusConfig.repair
+                ]?.text || d.repair_status,
+            })),
+          },
+        ],
+      }
+    : null;
+
   return (
     <div style={{ padding: 24 }}>
       <Card
@@ -313,6 +358,106 @@ const RecallDetail: React.FC = () => {
                 </Card>
               </Col>
             </Row>
+
+            {data.repair_count > 0 && (
+              <>
+                <Divider orientation="left">召回推进看板</Divider>
+                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                  <Col xs={12} md={4}>
+                    <Card size="small">
+                      <Statistic
+                        title="维修登记数"
+                        value={data.repair_count || 0}
+                        valueStyle={{ color: '#1677ff' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={4}>
+                    <Card size="small">
+                      <Statistic
+                        title="维修完成率"
+                        value={data.repair_complete_rate || '0%'}
+                        valueStyle={{ color: '#52c41a' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={4}>
+                    <Card size="small">
+                      <Statistic
+                        title="待联系"
+                        value={data.appointment_stats?.find((d: any) => d.appointment_status === 0)?.count || 0}
+                        valueStyle={{ color: '#8c8c8c' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={4}>
+                    <Card size="small">
+                      <Statistic
+                        title="已联系"
+                        value={data.appointment_stats?.find((d: any) => d.appointment_status === 1)?.count || 0}
+                        valueStyle={{ color: '#1677ff' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={4}>
+                    <Card size="small">
+                      <Statistic
+                        title="已预约"
+                        value={data.appointment_stats?.find((d: any) => d.appointment_status === 2)?.count || 0}
+                        valueStyle={{ color: '#13c2c2' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={4}>
+                    <Card size="small">
+                      <Statistic
+                        title="到店未修"
+                        value={data.appointment_stats?.find((d: any) => d.appointment_status === 3)?.count || 0}
+                        valueStyle={{ color: '#722ed1' }}
+                      />
+                    </Card>
+                  </Col>
+                </Row>
+                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                  <Col xs={24} md={12}>
+                    <Card size="small" title="预约推进状态分布">
+                      {appointmentChartOption && (
+                        <ReactECharts option={appointmentChartOption} style={{ height: 200 }} />
+                      )}
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Card size="small" title="维修状态分布">
+                      {repairStatusChartOption && (
+                        <ReactECharts option={repairStatusChartOption} style={{ height: 200 }} />
+                      )}
+                    </Card>
+                  </Col>
+                </Row>
+                {data.dealer_stats && data.dealer_stats.length > 0 && (
+                  <Card size="small" title="各经销商推进情况" style={{ marginBottom: 16 }}>
+                    <Row gutter={[16, 16]}>
+                      {data.dealer_stats.map((dealer: any, index: number) => (
+                        <Col xs={24} md={12} key={index}>
+                          <div style={{ padding: 8, background: '#fafafa', borderRadius: 6 }}>
+                            <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                              <div style={{ fontWeight: 'bold' }}>{dealer.dealer_name}</div>
+                              <div>
+                                维修登记: {dealer.total} | 已完成: {dealer.completed}
+                              </div>
+                              <Progress
+                                percent={dealer.total > 0 ? Math.round((dealer.completed / dealer.total) * 100) : 0}
+                                size="small"
+                              />
+                            </Space>
+                          </div>
+                        </Col>
+                      ))}
+                    </Row>
+                  </Card>
+                )}
+              </>
+            )}
 
             <Descriptions bordered column={2} size="middle">
               <Descriptions.Item label="召回编号">{data.recall_code}</Descriptions.Item>

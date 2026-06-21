@@ -200,11 +200,61 @@ func GetRecallDetail(c *gin.Context) {
 	}
 	vinQuery.Limit(100).Find(&vinList)
 
+	repairQuery := models.DB.Model(&models.RepairRecord{}).Where("recall_id = ?", id)
+
+	var repairCount int64
+	repairQuery.Count(&repairCount)
+
+	var repairCompleted int64
+	models.DB.Model(&models.RepairRecord{}).
+		Where("recall_id = ? AND repair_status = 2", id).Count(&repairCompleted)
+
+	type AppointmentStat struct {
+		AppointmentStatus int   `json:"appointment_status"`
+		Count             int64 `json:"count"`
+	}
+	var appointmentStats []AppointmentStat
+	models.DB.Model(&models.RepairRecord{}).
+		Select("appointment_status, COUNT(*) as count").
+		Where("recall_id = ?", id).
+		Group("appointment_status").
+		Scan(&appointmentStats)
+
+	type RepairStatusStat struct {
+		RepairStatus int   `json:"repair_status"`
+		Count        int64 `json:"count"`
+	}
+	var repairStatusStats []RepairStatusStat
+	models.DB.Model(&models.RepairRecord{}).
+		Select("repair_status, COUNT(*) as count").
+		Where("recall_id = ?", id).
+		Group("repair_status").
+		Scan(&repairStatusStats)
+
+	type DealerRepairStat struct {
+		DealerID   uint64 `json:"dealer_id"`
+		DealerName string `json:"dealer_name"`
+		Total      int64  `json:"total"`
+		Completed  int64  `json:"completed"`
+	}
+	var dealerStats []DealerRepairStat
+	models.DB.Model(&models.RepairRecord{}).
+		Select("dealer_id, dealer_name, COUNT(*) as total, SUM(CASE WHEN repair_status = 2 THEN 1 ELSE 0 END) as completed").
+		Where("recall_id = ?", id).
+		Group("dealer_id, dealer_name").
+		Scan(&dealerStats)
+
 	response.Success(c, gin.H{
-		"recall":              recall,
-		"related_complaints":  relatedComplaints,
-		"affected_vins":       vinList,
-		"can_confirm":         recall.ComplaintCount >= recall.MinComplaintThreshold,
+		"recall":               recall,
+		"related_complaints":   relatedComplaints,
+		"affected_vins":        vinList,
+		"can_confirm":          recall.ComplaintCount >= recall.MinComplaintThreshold,
+		"repair_count":         repairCount,
+		"repair_completed":     repairCompleted,
+		"repair_complete_rate": response.SafePercent(float64(repairCompleted), float64(repairCount)),
+		"appointment_stats":    appointmentStats,
+		"repair_status_stats":  repairStatusStats,
+		"dealer_stats":         dealerStats,
 	})
 }
 

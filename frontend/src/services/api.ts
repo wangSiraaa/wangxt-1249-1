@@ -76,6 +76,7 @@ export const repairApi = {
   detail: (id: number) => get(`/repairs/${id}`),
   update: (id: number, data: any) => put(`/repairs/${id}`, data),
   complete: (id: number, data: any) => post(`/repairs/${id}/complete`, data),
+  updateAppointment: (id: number, data: any) => post(`/repairs/${id}/appointment`, data),
   qualityCheck: (id: number, data: any) => post(`/repairs/${id}/quality-check`, data),
   uploadPhoto: (id: number, file: File) => {
     const formData = new FormData();
@@ -120,6 +121,12 @@ export const statusConfig = {
     1: { text: '维修中', color: 'processing' },
     2: { text: '已完成', color: 'success' },
     3: { text: '维修失败', color: 'error' },
+  },
+  appointment: {
+    0: { text: '待联系', color: 'default' },
+    1: { text: '已联系', color: 'blue' },
+    2: { text: '已预约', color: 'cyan' },
+    3: { text: '到店未修', color: 'purple' },
   },
   ownerConfirm: {
     0: { text: '未确认', color: 'default' },

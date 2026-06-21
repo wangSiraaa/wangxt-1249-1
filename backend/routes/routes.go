@@ -79,6 +79,7 @@ func SetupRoutes(r *gin.Engine) {
 			repairs.GET("/:id", controllers.GetRepairDetail)
 			repairs.PUT("/:id", middleware.RoleMiddleware("DEALER", "ADMIN"), controllers.UpdateRepair)
 			repairs.POST("/:id/complete", middleware.RoleMiddleware("DEALER", "ADMIN"), controllers.CompleteRepair)
+			repairs.POST("/:id/appointment", middleware.RoleMiddleware("DEALER", "ADMIN"), controllers.UpdateAppointmentStatus)
 			repairs.POST("/:id/quality-check", middleware.RoleMiddleware("QUALITY_ENGINEER", "ADMIN"), controllers.QualityCheck)
 			repairs.POST("/:id/photos", middleware.RoleMiddleware("DEALER", "ADMIN"), controllers.UploadOldPartPhoto)
 			repairs.DELETE("/:id/photos", middleware.RoleMiddleware("DEALER", "ADMIN"), controllers.DeleteOldPartPhoto)

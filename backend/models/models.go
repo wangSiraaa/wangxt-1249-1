@@ -160,38 +160,43 @@ func (Notification) TableName() string {
 
 type RepairRecord struct {
 	BaseModel
-	RepairNo          string         `gorm:"type:varchar(50);not null;uniqueIndex" json:"repair_no"`
-	RecallID          uint64         `gorm:"not null" json:"recall_id"`
-	NotificationID    uint64         `json:"notification_id"`
-	VINID             uint64         `gorm:"not null" json:"vin_id"`
-	VIN               string         `gorm:"type:varchar(17);not null;index" json:"vin"`
-	ModelID           uint64         `gorm:"not null" json:"model_id"`
-	DealerID          uint64         `json:"dealer_id"`
-	DealerName        string         `gorm:"type:varchar(200)" json:"dealer_name"`
-	RepairType        string         `gorm:"type:varchar(100)" json:"repair_type"`
-	RepairDescription string         `gorm:"type:text" json:"repair_description"`
-	RepairMeasure     string         `gorm:"type:text" json:"repair_measure"`
-	OldPartPhotos     JSONStringArray `gorm:"type:json" json:"old_part_photos"`
-	OldPartDisposal   string         `gorm:"type:varchar(200)" json:"old_part_disposal"`
-	RepairStartTime   time.Time      `json:"repair_start_time"`
-	RepairEndTime     time.Time      `json:"repair_end_time"`
-	RepairStatus      int            `gorm:"default:0" json:"repair_status"`
-	HandlerID         uint64         `gorm:"not null" json:"handler_id"`
-	HandlerName       string         `gorm:"type:varchar(100);not null" json:"handler_name"`
-	PartsUsed         string         `gorm:"type:text" json:"parts_used"`
-	LaborCost         float64        `gorm:"type:decimal(15,2);default:0" json:"labor_cost"`
-	PartsCost         float64        `gorm:"type:decimal(15,2);default:0" json:"parts_cost"`
-	TotalCost         float64        `gorm:"type:decimal(15,2);default:0" json:"total_cost"`
-	OwnerSignature    string         `gorm:"type:varchar(200)" json:"owner_signature"`
-	QualityCheckResult string        `gorm:"type:text" json:"quality_check_result"`
-	QualityCheckerID  uint64         `json:"quality_checker_id"`
-	QualityCheckerName string        `gorm:"type:varchar(100)" json:"quality_checker_name"`
-	QualityCheckTime  time.Time      `json:"quality_check_time"`
-	Remark            string         `gorm:"type:text" json:"remark"`
-	Recall            RecallScope    `gorm:"foreignKey:RecallID" json:"recall,omitempty"`
-	Notification      Notification   `gorm:"foreignKey:NotificationID" json:"notification,omitempty"`
-	VehicleVIN        VehicleVIN     `gorm:"foreignKey:VINID" json:"vehicle_vin,omitempty"`
-	Model             VehicleModel   `gorm:"foreignKey:ModelID" json:"model,omitempty"`
+	RepairNo            string         `gorm:"type:varchar(50);not null;uniqueIndex" json:"repair_no"`
+	RecallID            uint64         `gorm:"not null" json:"recall_id"`
+	NotificationID      uint64         `json:"notification_id"`
+	VINID               uint64         `gorm:"not null" json:"vin_id"`
+	VIN                 string         `gorm:"type:varchar(17);not null;index" json:"vin"`
+	ModelID             uint64         `gorm:"not null" json:"model_id"`
+	DealerID            uint64         `json:"dealer_id"`
+	DealerName          string         `gorm:"type:varchar(200)" json:"dealer_name"`
+	RepairType          string         `gorm:"type:varchar(100)" json:"repair_type"`
+	RepairDescription   string         `gorm:"type:text" json:"repair_description"`
+	RepairMeasure       string         `gorm:"type:text" json:"repair_measure"`
+	OldPartPhotos       JSONStringArray `gorm:"type:json" json:"old_part_photos"`
+	OldPartDisposal     string         `gorm:"type:varchar(200)" json:"old_part_disposal"`
+	RepairStartTime     time.Time      `json:"repair_start_time"`
+	RepairEndTime       time.Time      `json:"repair_end_time"`
+	RepairStatus        int            `gorm:"default:0" json:"repair_status"`
+	AppointmentStatus   int            `gorm:"default:0" json:"appointment_status"`
+	ContactTime         time.Time      `json:"contact_time"`
+	AppointmentTime     time.Time      `json:"appointment_time"`
+	ArrivalTime         time.Time      `json:"arrival_time"`
+	ContactRemark       string         `gorm:"type:varchar(500)" json:"contact_remark"`
+	HandlerID           uint64         `gorm:"not null" json:"handler_id"`
+	HandlerName         string         `gorm:"type:varchar(100);not null" json:"handler_name"`
+	PartsUsed           string         `gorm:"type:text" json:"parts_used"`
+	LaborCost           float64        `gorm:"type:decimal(15,2);default:0" json:"labor_cost"`
+	PartsCost           float64        `gorm:"type:decimal(15,2);default:0" json:"parts_cost"`
+	TotalCost           float64        `gorm:"type:decimal(15,2);default:0" json:"total_cost"`
+	OwnerSignature      string         `gorm:"type:varchar(200)" json:"owner_signature"`
+	QualityCheckResult  string         `gorm:"type:text" json:"quality_check_result"`
+	QualityCheckerID    uint64         `json:"quality_checker_id"`
+	QualityCheckerName  string         `gorm:"type:varchar(100)" json:"quality_checker_name"`
+	QualityCheckTime    time.Time      `json:"quality_check_time"`
+	Remark              string         `gorm:"type:text" json:"remark"`
+	Recall              RecallScope    `gorm:"foreignKey:RecallID" json:"recall,omitempty"`
+	Notification        Notification   `gorm:"foreignKey:NotificationID" json:"notification,omitempty"`
+	VehicleVIN          VehicleVIN     `gorm:"foreignKey:VINID" json:"vehicle_vin,omitempty"`
+	Model               VehicleModel   `gorm:"foreignKey:ModelID" json:"model,omitempty"`
 }
 
 func (RepairRecord) TableName() string {

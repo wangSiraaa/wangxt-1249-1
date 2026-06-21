@@ -46,6 +46,12 @@ type RepairUpdateRequest struct {
 	Remark            string   `json:"remark"`
 }
 
+type AppointmentUpdateRequest struct {
+	AppointmentStatus int    `json:"appointment_status" binding:"required,oneof=0 1 2 3"`
+	AppointmentTime   string `json:"appointment_time"`
+	ContactRemark     string `json:"contact_remark"`
+}
+
 type RepairCompleteRequest struct {
 	RepairDescription string   `json:"repair_description"`
 	RepairMeasure     string   `json:"repair_measure"`
@@ -140,6 +146,7 @@ func CreateRepair(c *gin.Context) {
 		RepairStartTime:   repairStartTime,
 		RepairEndTime:     repairEndTime,
 		RepairStatus:      0,
+		AppointmentStatus: 0,
 		HandlerID:         handlerID.(uint64),
 		HandlerName:       handlerName.(string),
 		PartsUsed:         req.PartsUsed,
@@ -377,6 +384,13 @@ func CompleteRepair(c *gin.Context) {
 	updates["handler_id"] = handlerID.(uint64)
 	updates["handler_name"] = handlerName.(string)
 
+	if repair.AppointmentStatus < 3 {
+		updates["appointment_status"] = 3
+		if repair.ArrivalTime.IsZero() {
+			updates["arrival_time"] = time.Now()
+		}
+	}
+
 	if req.RepairDescription != "" {
 		updates["repair_description"] = req.RepairDescription
 	}
@@ -463,6 +477,57 @@ func QualityCheck(c *gin.Context) {
 	response.Success(c, repair)
 }
 
+func UpdateAppointmentStatus(c *gin.Context) {
+	id := c.Param("id")
+
+	var req AppointmentUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "请求参数错误: "+err.Error())
+		return
+	}
+
+	var repair models.RepairRecord
+	if err := models.DB.Where("id = ?", id).First(&repair).Error; err != nil {
+		response.NotFound(c, "维修记录不存在")
+		return
+	}
+
+	updates := make(map[string]interface{})
+	updates["appointment_status"] = req.AppointmentStatus
+
+	if req.AppointmentStatus >= 1 && repair.ContactTime.IsZero() {
+		updates["contact_time"] = time.Now()
+	}
+
+	if req.AppointmentStatus >= 2 {
+		if req.AppointmentTime != "" {
+			parsed, err := time.Parse("2006-01-02 15:04:05", req.AppointmentTime)
+			if err == nil {
+				updates["appointment_time"] = parsed
+			}
+		} else if repair.AppointmentTime.IsZero() {
+			updates["appointment_time"] = time.Now()
+		}
+	}
+
+	if req.AppointmentStatus >= 3 && repair.ArrivalTime.IsZero() {
+		updates["arrival_time"] = time.Now()
+	}
+
+	if req.ContactRemark != "" {
+		updates["contact_remark"] = req.ContactRemark
+	}
+
+	if err := models.DB.Model(&repair).Updates(updates).Error; err != nil {
+		response.InternalServerError(c, "更新预约状态失败: "+err.Error())
+		return
+	}
+
+	models.DB.Preload("Recall").Preload("Notification").Preload("VehicleVIN").Preload("Model").
+		First(&repair, id)
+	response.Success(c, repair)
+}
+
 func GetRepairStatistics(c *gin.Context) {
 	recallID := c.Query("recall_id")
 	dealerID := c.Query("dealer_id")
@@ -497,6 +562,20 @@ func GetRepairStatistics(c *gin.Context) {
 	var failed int64
 	newQuery().Where("repair_status = 3").Count(&failed)
 
+	type StatusStat struct {
+		Status int   `json:"status"`
+		Count  int64 `json:"count"`
+	}
+	var repairStatusStats []StatusStat
+	newQuery().Select("repair_status as status, COUNT(*) as count").
+		Group("repair_status").
+		Scan(&repairStatusStats)
+
+	var appointmentStats []StatusStat
+	newQuery().Select("appointment_status as status, COUNT(*) as count").
+		Group("appointment_status").
+		Scan(&appointmentStats)
+
 	type DealerStat struct {
 		DealerName string `json:"dealer_name"`
 		Count      int64  `json:"count"`
@@ -511,14 +590,16 @@ func GetRepairStatistics(c *gin.Context) {
 	newQuery().Select("IFNULL(SUM(total_cost), 0)").Scan(&totalCost)
 
 	response.Success(c, gin.H{
-		"total":         total,
-		"pending":       pending,
-		"in_progress":   inProgress,
-		"completed":     completed,
-		"failed":        failed,
-		"total_cost":    totalCost,
-		"complete_rate": response.SafePercent(float64(completed), float64(total)),
-		"by_dealer":     dealerStats,
+		"total":              total,
+		"pending":            pending,
+		"in_progress":        inProgress,
+		"completed":          completed,
+		"failed":             failed,
+		"total_cost":         totalCost,
+		"complete_rate":      response.SafePercent(float64(completed), float64(total)),
+		"by_status":          repairStatusStats,
+		"by_appointment":     appointmentStats,
+		"by_dealer":          dealerStats,
 	})
 }
 

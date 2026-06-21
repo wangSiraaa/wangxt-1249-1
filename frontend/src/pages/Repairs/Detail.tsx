@@ -13,6 +13,7 @@ import {
   Modal,
   Alert,
   Empty,
+  Dropdown,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -22,10 +23,12 @@ import {
   UserOutlined,
   UploadOutlined,
   ExclamationCircleOutlined,
+  ScheduleOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { history, useParams, useModel } from '@umijs/max';
 import { repairApi, notificationApi, statusConfig, RoleType } from '@/services/api';
-import { StatusTag, RoleTag } from '@/components/StatusTag';
+import { StatusTag, RoleTag, AppointmentProgress } from '@/components/StatusTag';
 import PhotoUpload from '@/components/PhotoUpload';
 import dayjs from 'dayjs';
 
@@ -133,6 +136,34 @@ const RepairDetail: React.FC = () => {
     });
   };
 
+  const handleAppointmentUpdate = (status: number) => {
+    const statusNames: Record<number, string> = {
+      0: '待联系',
+      1: '已联系',
+      2: '已预约',
+      3: '到店未修',
+    };
+
+    confirm({
+      title: `标记为"${statusNames[status]}"`,
+      icon: <ExclamationCircleOutlined />,
+      content: `确定将此维修记录的预约状态标记为"${statusNames[status]}"吗？`,
+      okText: '确定',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await repairApi.updateAppointment(Number(params.id), {
+            appointment_status: status,
+          });
+          message.success(`已更新为"${statusNames[status]}"`);
+          loadData();
+        } catch (error) {
+          console.error('Update appointment error:', error);
+        }
+      },
+    });
+  };
+
   if (!data) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
@@ -158,14 +189,30 @@ const RepairDetail: React.FC = () => {
         extra={
           <Space>
             {isDealer && data.status < 2 && (
-              <Button
-                type="primary"
-                icon={<CheckCircleOutlined />}
-                disabled={oldPartPhotos.length === 0}
-                onClick={handleComplete}
-              >
-                完成维修
-              </Button>
+              <>
+                <Dropdown
+                  menu={{
+                    items: [
+                      { key: '1', label: '标记为已联系' },
+                      { key: '2', label: '标记为已预约' },
+                      { key: '3', label: '标记为到店未修' },
+                    ],
+                    onClick: ({ key }) => handleAppointmentUpdate(Number(key)),
+                  }}
+                >
+                  <Button icon={<ScheduleOutlined />}>
+                    预约推进 <DownOutlined />
+                  </Button>
+                </Dropdown>
+                <Button
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  disabled={oldPartPhotos.length === 0}
+                  onClick={handleComplete}
+                >
+                  完成维修
+                </Button>
+              </>
             )}
             {isQuality && data.status === 2 && data.quality_result === null && (
               <>
@@ -220,6 +267,21 @@ const RepairDetail: React.FC = () => {
           <Descriptions.Item label="维修单号">{data.repair_code}</Descriptions.Item>
           <Descriptions.Item label="维修状态">
             <StatusTag type="repair" status={data.status} />
+          </Descriptions.Item>
+          <Descriptions.Item label="预约推进状态" span={2}>
+            <AppointmentProgress status={data.appointment_status || 0} />
+          </Descriptions.Item>
+          <Descriptions.Item label="联系时间">
+            {data.contact_time ? dayjs(data.contact_time).format('YYYY-MM-DD HH:mm') : '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="预约时间">
+            {data.appointment_time ? dayjs(data.appointment_time).format('YYYY-MM-DD HH:mm') : '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="到店时间">
+            {data.arrival_time ? dayjs(data.arrival_time).format('YYYY-MM-DD HH:mm') : '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="联系备注" span={2}>
+            {data.contact_remark || '-'}
           </Descriptions.Item>
           <Descriptions.Item label="关联通知">
             {notification ? (

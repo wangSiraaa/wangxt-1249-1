@@ -11,6 +11,7 @@ import {
   Alert,
   Image,
   Tooltip,
+  Card,
 } from 'antd';
 import {
   PlusOutlined,
@@ -22,7 +23,7 @@ import {
 } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import { repairApi, notificationApi, statusConfig, RoleType } from '@/services/api';
-import { StatusTag, RoleTag } from '@/components/StatusTag';
+import { StatusTag, RoleTag, AppointmentProgress } from '@/components/StatusTag';
 import dayjs from 'dayjs';
 import ReactECharts from 'echarts-for-react';
 
@@ -75,6 +76,28 @@ const RepairList: React.FC = () => {
       console.error('Quality check error:', error);
     }
   };
+
+  const appointmentChartOption = statistics?.by_appointment
+    ? {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0 },
+        series: [
+          {
+            type: 'pie',
+            radius: ['40%', '65%'],
+            center: ['50%', '45%'],
+            label: { show: true, formatter: '{b}: {c} ({d}%)' },
+            data: statistics.by_appointment.map((d: any) => ({
+              value: d.count,
+              name:
+                statusConfig.appointment[
+                  d.appointment_status as keyof typeof statusConfig.appointment
+                ]?.text || d.appointment_status,
+            })),
+          },
+        ],
+      }
+    : null;
 
   const repairChartOption = statistics?.by_status
     ? {
@@ -177,6 +200,12 @@ const RepairList: React.FC = () => {
       dataIndex: 'status',
       width: 100,
       render: (v) => <StatusTag type="repair" status={v} />,
+    },
+    {
+      title: '预约推进状态',
+      dataIndex: 'appointment_status',
+      width: 200,
+      render: (v) => <StatusTag type="appointment" status={v || 0} />,
     },
     {
       title: '质检状态',
@@ -308,6 +337,49 @@ const RepairList: React.FC = () => {
             <Card size="small" title="维修状态分布">
               {repairChartOption && (
                 <ReactECharts option={repairChartOption} style={{ height: 160 }} />
+              )}
+            </Card>
+          </Col>
+          <Col xs={12} md={4}>
+            <Card size="small">
+              <Statistic
+                title="待联系"
+                value={statistics.by_appointment?.find((d: any) => d.appointment_status === 0)?.count || 0}
+                valueStyle={{ color: '#8c8c8c' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} md={4}>
+            <Card size="small">
+              <Statistic
+                title="已联系"
+                value={statistics.by_appointment?.find((d: any) => d.appointment_status === 1)?.count || 0}
+                valueStyle={{ color: '#1677ff' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} md={4}>
+            <Card size="small">
+              <Statistic
+                title="已预约"
+                value={statistics.by_appointment?.find((d: any) => d.appointment_status === 2)?.count || 0}
+                valueStyle={{ color: '#13c2c2' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} md={4}>
+            <Card size="small">
+              <Statistic
+                title="到店未修"
+                value={statistics.by_appointment?.find((d: any) => d.appointment_status === 3)?.count || 0}
+                valueStyle={{ color: '#722ed1' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} md={8}>
+            <Card size="small" title="预约状态分布">
+              {appointmentChartOption && (
+                <ReactECharts option={appointmentChartOption} style={{ height: 160 }} />
               )}
             </Card>
           </Col>
